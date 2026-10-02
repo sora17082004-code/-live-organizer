@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ライブ主催">
+<link rel="manifest" href="manifest.json">
+<title>ライブ主催</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#f5f5f7;color:#111}
+header{position:sticky;top:0;padding:calc(env(safe-area-inset-top) + 14px) 18px 14px;background:#111;color:#fff;z-index:5}
+h1{font-size:22px;margin:0}.wrap{padding:16px;max-width:720px;margin:auto}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 5px #00000010}
+h2{font-size:18px;margin:0 0 12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:13px;color:#666;display:block;margin-bottom:5px}
+input,button{width:100%;font-size:16px;padding:12px;border-radius:12px;border:1px solid #ddd;background:#fff}
+button{background:#111;color:#fff;border:0;font-weight:700;margin-top:10px}.danger{background:#eee;color:#111}
+.timeline{position:relative}.item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid #eee}.time{font-weight:800;width:62px}.dot{width:10px;height:10px;border-radius:50%;background:#111;margin-top:6px;flex:none}.content{flex:1}.name{font-weight:800;font-size:17px}.note{font-size:13px;color:#666;margin-top:3px}
+.big{font-size:30px;font-weight:800}.muted{color:#777;font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>🎤 ライブ主催</h1></header>
+<div class="wrap">
+<div class="card">
+<h2>イベント</h2>
+<div class="row"><div><label>イベント名</label><input id="eventName" placeholder="イベント名"></div><div><label>日付</label><input id="eventDate" type="date"></div></div>
+</div>
+
+<div class="card">
+<h2>🎫 チケット</h2>
+<div class="row"><div><label>チケット価格</label><input id="price" type="number" inputmode="numeric" value="3000"></div><div><label>販売枚数</label><input id="sold" type="number" inputmode="numeric" value="0"></div></div>
+</div>
+
+<div class="card">
+<h2>🎤 当日タイムテーブル</h2>
+<div id="timeline" class="timeline"></div>
+<button id="add">＋ 出演枠を追加</button>
+</div>
+
+<div class="card">
+<h2>📊 現在の集計</h2>
+<div class="big" id="sales">¥0</div>
+<div class="muted">チケット売上</div>
+</div>
+</div>
+<script>
+const KEY="live-organizer-pwa-v1";
+let data=JSON.parse(localStorage.getItem(KEY)||'{"slots":[]}');
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+function render(){
+ const box=$("timeline"); box.innerHTML="";
+ data.slots.sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+ data.slots.forEach((s,i)=>{
+  const el=document.createElement("div"); el.className="item";
+  el.innerHTML=`<div class="time">${s.time||"--:--"}</div><div class="dot"></div><div class="content"><div class="name">${s.name||"出演者未入力"}</div><div class="note">${s.note||""}</div><button class="danger" data-i="${i}">編集</button></div>`;
+  box.appendChild(el);
+ });
+ box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  const i=+b.dataset.i; const s=data.slots[i];
+  const t=prompt("時間",s.time||"18:00"); if(t===null)return;
+  const n=prompt("出演者／内容",s.name||""); if(n===null)return;
+  const note=prompt("メモ",s.note||""); if(note===null)return;
+  data.slots[i]={time:t,name:n,note}; save(); render();
+ });
+}
+$("add").onclick=()=>{data.slots.push({time:"18:00",name:"",note:""});save();render()};
+function calc(){const p=Number($("price").value)||0,s=Number($("sold").value)||0;$("sales").textContent="¥"+(p*s).toLocaleString();}
+["eventName","eventDate","price","sold"].forEach(id=>$(id).addEventListener("input",()=>{calc();save();}));
+render();calc();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}</script></body>
+</html>
